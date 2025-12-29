@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <title>双开独立运行环境</title>
     <style>
         /* 全局重置 */
@@ -10,8 +15,7 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            /* 关键修改：使用 dvh 确保在 Safari 各种状态下都是真全屏 */
-            height: 100dvh; 
+            height: 100%;
             overflow: hidden;
             background: #000;
         }
@@ -47,9 +51,8 @@
         /* 悬浮导航栏 */
         #nav-bar {
             position: fixed;
-            top: 15px;
-            /* 适配刘海屏：如果设备有刘海，增加一点顶部距离 */
-            top: max(15px, env(safe-area-inset-top)); 
+            /* 因为现在内容通顶了，要避开刘海，稍微往下挪一点 */
+            top: 40px; 
             left: 50%;
             transform: translateX(-50%);
             
@@ -69,7 +72,7 @@
 
         /* 隐藏状态 */
         #nav-bar.hidden {
-            transform: translate(-50%, -200%); /* 移得更远一点确保不露头 */
+            transform: translate(-50%, -200%);
             opacity: 0;
             pointer-events: none;
         }
@@ -83,7 +86,7 @@
             background: transparent;
             color: #444;
             font-size: 14px;
-            font-weight: 700; /* 加粗字体 */
+            font-weight: 700;
             transition: all 0.2s;
             white-space: nowrap;
         }
@@ -119,7 +122,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 40px; /* 稍微加大一点触发范围，更好点 */
+            height: 45px; /* 加高一点，方便手指点按 */
             background: transparent;
             z-index: 999;
             pointer-events: none; 
