@@ -5,84 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>双开独立运行环境</title>
     <style>
+        /* 全局重置，确保无边距 */
         body, html {
             margin: 0;
             padding: 0;
+            width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: sans-serif;
-            background: #1a1a1a;
+            background: #000; /* 背景黑底，防闪烁 */
         }
 
-        /* 顶部控制栏 */
-        #nav-bar {
-            height: 50px;
-            background: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            position: relative;
-            z-index: 100;
-            transition: transform 0.3s ease-in-out;
-        }
-
-        /* 隐藏状态下的导航栏（向上平移） */
-        #nav-bar.hidden {
-            transform: translateY(-100%);
+        /* 1. 游戏容器区域 
+           核心：占满 100% 屏幕，不受导航栏影响
+        */
+        #container {
             position: absolute;
             top: 0;
+            left: 0;
             width: 100%;
-        }
-
-        /* 按钮通用样式 */
-        button {
-            padding: 6px 15px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            background: #555;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-
-        button:hover {
-            background: #777;
-        }
-
-        button.active {
-            background: #007bff;
-        }
-
-        /* 特殊的隐藏功能按钮 */
-        .hide-btn {
-            background: #d9534f;
-            margin-left: 10px;
-        }
-        .hide-btn:hover {
-            background: #c9302c;
-        }
-
-        /* 容器区域 */
-        #container {
-            position: relative;
-            width: 100%;
-            /* 默认高度自适应，JS会动态调整 */
-            height: calc(100% - 50px); 
-            transition: height 0.3s ease-in-out;
-        }
-        
-        /* 全屏模式下的容器 */
-        #container.fullscreen {
             height: 100%;
-            margin-top: -50px; /* 抵消掉原来导航栏占用的空间 */
+            z-index: 0; /* 在最底层 */
         }
 
-        /* iframe 通用样式 */
+        /* 2. iframe 样式
+           核心：visibility 控制显隐，保证后台持续运行
+        */
         iframe {
             position: absolute;
             top: 0;
@@ -92,41 +39,101 @@
             border: none;
             background: #fff;
             visibility: hidden; 
-            z-index: 0;
+            /* 即使隐藏也保持交互活性，防止某些游戏暂停 */
+            pointer-events: none; 
         }
 
         iframe.active {
             visibility: visible;
-            z-index: 1;
+            pointer-events: auto;
         }
 
-        /* 唤醒触发区（仅在全屏时显示） */
+        /* 3. 悬浮导航栏 (Floating Nav)
+           核心：fixed 定位，漂浮在游戏上方，不占流式布局空间
+        */
+        #nav-bar {
+            position: fixed;
+            top: 15px; /* 距离顶部一点距离，更好看 */
+            left: 50%;
+            transform: translateX(-50%);
+            
+            /* 胶囊样式 */
+            background: rgba(255, 255, 255, 0.85); /* 半透明毛玻璃感 */
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000; /* 保证在最顶层 */
+            
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s;
+        }
+
+        /* 隐藏状态：向上飞出屏幕 */
+        #nav-bar.hidden {
+            transform: translate(-50%, -150%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 按钮样式优化 */
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 20px;
+            background: transparent;
+            color: #333;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        /* 选中状态 */
+        button.active {
+            background: #000;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        /* 隐藏按钮 (X) */
+        .hide-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+        }
+        .hide-btn:hover {
+            background: #ff4d4f;
+            color: white;
+        }
+
+        /* 4. 隐形触发区 (Invisible Trigger)
+           核心：透明，位于顶部，双击唤醒
+        */
         #trigger-zone {
             position: fixed;
             top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px; /* 宽度适中，避免遮挡两侧游戏按钮 */
-            height: 25px;
-            background: rgba(255, 255, 255, 0.2);
-            border-bottom-left-radius: 10px;
-            border-bottom-right-radius: 10px;
-            z-index: 9999;
-            text-align: center;
-            line-height: 25px;
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            cursor: pointer;
-            pointer-events: none; /* 默认不响应点击，避免遮挡 */
-            opacity: 0;
-            transition: opacity 0.3s;
+            left: 0;
+            width: 100%;
+            height: 30px; /* 顶部 30px 区域为触发区 */
+            background: transparent; /* 完全隐形 */
+            z-index: 999; /* 比游戏高，比导航栏低（如果导航栏在的话） */
+            /* 关键：当导航栏显示时，让触发区不挡鼠标，避免误触。
+               当导航栏隐藏时，JS会把它变成 auto
+            */
+            pointer-events: none; 
         }
 
-        /* 激活触发区（可以点击了） */
-        #trigger-zone.visible {
-            pointer-events: auto;
-            opacity: 1;
-        }
     </style>
 </head>
 <body>
@@ -134,12 +141,10 @@
     <div id="nav-bar">
         <button onclick="switchTab('site1', this)" class="active">330</button>
         <button onclick="switchTab('site2', this)">兔k</button>
-        <button onclick="toggleNav(false)" class="hide-btn" title="隐藏菜单">✖️ 收起</button>
+        <button onclick="toggleNav(false)" class="hide-btn">✕</button>
     </div>
 
-    <div id="trigger-zone" ondblclick="toggleNav(true)">
-        双击此处显示菜单
-    </div>
+    <div id="trigger-zone" ondblclick="toggleNav(true)"></div>
 
     <div id="container">
         <iframe id="site1" class="active" src="https://cx3300-1.github.io/sfsfdf/"></iframe>
@@ -148,29 +153,29 @@
 
     <script>
         function switchTab(siteId, btn) {
+            // 切换 iframe 显隐
             document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#nav-bar > button:not(.hide-btn)').forEach(el => el.classList.remove('active'));
-
             document.getElementById(siteId).classList.add('active');
+
+            // 切换按钮样式
+            document.querySelectorAll('#nav-bar > button:not(.hide-btn)').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
         }
 
         function toggleNav(show) {
             const nav = document.getElementById('nav-bar');
-            const container = document.getElementById('container');
             const trigger = document.getElementById('trigger-zone');
 
             if (show) {
-                // 显示导航栏
+                // 显示导航
                 nav.classList.remove('hidden');
-                container.classList.remove('fullscreen');
-                trigger.classList.remove('visible');
+                // 导航出现时，禁用触发区的点击，防止影响下面游戏的顶部按钮
+                trigger.style.pointerEvents = 'none';
             } else {
-                // 隐藏导航栏
+                // 隐藏导航
                 nav.classList.add('hidden');
-                // 稍微延迟一下改变容器大小，配合动画
-                setTimeout(() => container.classList.add('fullscreen'), 50); 
-                trigger.classList.add('visible');
+                // 导航隐藏时，启用触发区的点击检测
+                trigger.style.pointerEvents = 'auto';
             }
         }
     </script>
