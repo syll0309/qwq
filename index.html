@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+
+    <title>双开独立运行环境</title>
+    <style>
+        html { height: 100%; height: -webkit-fill-available; }
+        body { margin: 0; padding: 0; width: 100%; height: 100%; min-height: 100vh; min-height: -webkit-fill-available; overflow: hidden; background: #000; }
+
+        /* 容器四边拉伸，解决黑边 */
+        #container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+        }
+
+        iframe {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            border: none;
+            background: #fff;
+            
+            /* 核心修改：不再隐藏！ */
+            /* 默认层级为 1， opacity 保持 1 (防止被系统判定为不可见而冻结) */
+            z-index: 1; 
+            opacity: 1; 
+            transition: opacity 0.3s; /* 切换时加个淡入淡出更自然 */
+        }
+
+        /* 激活状态：层级变高，压在另一个上面 */
+        iframe.active {
+            z-index: 10;
+        }
+
+        /* 导航栏：底部 */
+        #nav-bar {
+            position: fixed;
+            top: auto;
+            bottom: 30px; 
+            bottom: calc(30px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 50px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.3s;
+        }
+        #nav-bar.hidden { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
+
+        button { padding: 8px 16px; cursor: pointer; border: none; border-radius: 20px; background: transparent; color: #333; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        button.active { background: #000; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .hide-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #f0f0f0; color: #666; display: flex; align-items: center; justify-content: center; margin-left: 5px; }
+        
+        #trigger-zone { position: fixed; top: auto; bottom: 0; left: 0; width: 100%; height: 40px; background: transparent; z-index: 999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="nav-bar">
+        <button onclick="switchTab('site1', this)" class="active">330</button>
+        <button onclick="switchTab('site2', this)">兔K</button>
+        <button onclick="toggleNav(false)" class="hide-btn">✕</button>
+    </div>
+
+    <div id="trigger-zone" ondblclick="toggleNav(true)"></div>
+
+    <div id="container">
+        <iframe id="site1" class="active" src="https://cx3300-1.github.io/sfsfdf/" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+        <iframe id="site2" src="https://kitty-0v0.github.io/-k-/index.html" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+    </div>
+
+    <script>
+        function switchTab(siteId, btn) {
+            // 只切换 active class，利用 z-index 覆盖，底层那个依然在运行
+            document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
+            document.getElementById(siteId).classList.add('active');
+
+            document.querySelectorAll('#nav-bar > button:not(.hide-btn)').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function toggleNav(show) {
+            const nav = document.getElementById('nav-bar');
+            const trigger = document.getElementById('trigger-zone');
+            if (show) {
+                nav.classList.remove('hidden');
+                trigger.style.pointerEvents = 'none';
+            } else {
+                nav.classList.add('hidden');
+                trigger.style.pointerEvents = 'auto';
+            }
+        }
+    </script>
+</body>
+</html>
