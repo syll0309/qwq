@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>双开独立运行环境</title>
     <style>
         body, html {
@@ -21,21 +21,33 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
+            gap: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
             position: relative;
             z-index: 100;
+            transition: transform 0.3s ease-in-out;
         }
 
+        /* 隐藏状态下的导航栏（向上平移） */
+        #nav-bar.hidden {
+            transform: translateY(-100%);
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+
+        /* 按钮通用样式 */
         button {
-            padding: 8px 20px;
+            padding: 6px 15px;
             cursor: pointer;
             border: none;
             border-radius: 4px;
             background: #555;
             color: white;
+            font-size: 14px;
             font-weight: bold;
             transition: background 0.2s;
+            white-space: nowrap;
         }
 
         button:hover {
@@ -46,11 +58,28 @@
             background: #007bff;
         }
 
+        /* 特殊的隐藏功能按钮 */
+        .hide-btn {
+            background: #d9534f;
+            margin-left: 10px;
+        }
+        .hide-btn:hover {
+            background: #c9302c;
+        }
+
         /* 容器区域 */
         #container {
             position: relative;
             width: 100%;
-            height: calc(100% - 50px); /* 减去导航栏高度 */
+            /* 默认高度自适应，JS会动态调整 */
+            height: calc(100% - 50px); 
+            transition: height 0.3s ease-in-out;
+        }
+        
+        /* 全屏模式下的容器 */
+        #container.fullscreen {
+            height: 100%;
+            margin-top: -50px; /* 抵消掉原来导航栏占用的空间 */
         }
 
         /* iframe 通用样式 */
@@ -62,41 +91,87 @@
             height: 100%;
             border: none;
             background: #fff;
-            /* 关键：使用 visibility 而不是 display，确保后台持续渲染 */
             visibility: hidden; 
             z-index: 0;
         }
 
-        /* 激活状态 */
         iframe.active {
             visibility: visible;
             z-index: 1;
+        }
+
+        /* 唤醒触发区（仅在全屏时显示） */
+        #trigger-zone {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px; /* 宽度适中，避免遮挡两侧游戏按钮 */
+            height: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            z-index: 9999;
+            text-align: center;
+            line-height: 25px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            pointer-events: none; /* 默认不响应点击，避免遮挡 */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* 激活触发区（可以点击了） */
+        #trigger-zone.visible {
+            pointer-events: auto;
+            opacity: 1;
         }
     </style>
 </head>
 <body>
 
     <div id="nav-bar">
-        <button onclick="switchTab('site1', this)" class="active">前往330</button>
-        <button onclick="switchTab('site2', this)">前往兔K</button>
+        <button onclick="switchTab('site1', this)" class="active">330</button>
+        <button onclick="switchTab('site2', this)">兔k</button>
+        <button onclick="toggleNav(false)" class="hide-btn" title="隐藏菜单">✖️ 收起</button>
+    </div>
+
+    <div id="trigger-zone" ondblclick="toggleNav(true)">
+        双击此处显示菜单
     </div>
 
     <div id="container">
         <iframe id="site1" class="active" src="https://cx3300-1.github.io/sfsfdf/"></iframe>
-        
         <iframe id="site2" src="https://kitty-0v0.github.io/-k-/index.html"></iframe>
     </div>
 
     <script>
         function switchTab(siteId, btn) {
-            // 1. 隐藏所有 iframe（视觉隐藏，后台仍在运行）
             document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
-            // 2. 移除所有按钮激活状态
-            document.querySelectorAll('button').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#nav-bar > button:not(.hide-btn)').forEach(el => el.classList.remove('active'));
 
-            // 3. 激活选中的 iframe 和按钮
             document.getElementById(siteId).classList.add('active');
             btn.classList.add('active');
+        }
+
+        function toggleNav(show) {
+            const nav = document.getElementById('nav-bar');
+            const container = document.getElementById('container');
+            const trigger = document.getElementById('trigger-zone');
+
+            if (show) {
+                // 显示导航栏
+                nav.classList.remove('hidden');
+                container.classList.remove('fullscreen');
+                trigger.classList.remove('visible');
+            } else {
+                // 隐藏导航栏
+                nav.classList.add('hidden');
+                // 稍微延迟一下改变容器大小，配合动画
+                setTimeout(() => container.classList.add('fullscreen'), 50); 
+                trigger.classList.add('visible');
+            }
         }
     </script>
 
